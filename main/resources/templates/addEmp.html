@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8"/>
+	<title>员工管理系统</title>
+	<link rel="stylesheet" href="/layui/css/layui.css" media="all">
+	<style type="text/css">
+		form {
+			margin: 30px auto;
+			text-align: center;
+			border-collapse: collapse;
+			width: 50%;
+		}
+
+		#head {
+			text-align: center;
+			font-size: 26px;
+		}
+
+
+	</style>
+	<script src="/layui/layui.js"></script>
+	<script type="text/javascript" src="/layui/jquery-3.2.1.min.js"></script>
+	<script>
+		//创建layui表单
+		layui.use('form', function() {
+			var form = layui.form;
+			form.verify({
+				name: function(value){ //value：表单的值、item：表单的DOM对象
+					if(!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)){
+						return '员工姓名不能有特殊字符';
+					}
+				}
+				//我们既支持上述函数式的方式，也支持下述数组的形式
+				//数组的两个值分别代表：[正则匹配、匹配不符时的提示文字]
+				,num: [
+					/^[0-9]*$/
+					,'只能输入数字'
+				]
+			});
+			form.on('submit(EmpForm)', function (data) {
+				$.ajax({
+					url: data.form.action,
+					type: data.form.method,
+					data: $(data.form).serialize(),
+					success: function (info) {
+						if (info.code==0) {
+							layer.msg('添加成功，1秒后自动关闭该窗口');
+							//延迟1秒执行，目的是让用户看到提示
+							setTimeout(function () {
+								//1、先得到当前iframe层（弹出层）的索引  ///2、提交成功关闭弹出层窗口
+								var index = parent.layer.getFrameIndex(window.name);
+								parent.layer.close(index);
+							}, 1 * 1000);
+						}else {
+							parent.layer.msg(info.msg, {
+								icon: 5
+							});
+						}
+					}
+
+				});
+				return false;
+			});
+			getselect(form);
+		})
+		function getselect(form){
+			$.ajax({
+				url:'emp/findDeptList',
+				type:'get',
+				dataType: 'json',
+				success:function (data) {
+					if(data.length>0){
+						for(var i=0;i<data.length;i++){
+							$("#select2").append("<option value='"+data[i].did+"'>"+data[i].deptName+"</option>")
+						}
+						form.render("select")
+					}
+				}
+
+			})
+		}
+
+		//时间控件
+		layui.use('laydate', function(){
+			var laydate = layui.laydate;
+
+			//执行一个laydate实例
+			laydate.render({
+				elem: '#datetime' //指定元素
+				,trigger: 'click'
+			});
+		});
+		//时间控件
+		layui.use('laydate', function(){
+			var laydate = layui.laydate;
+			//执行一个laydate实例
+			laydate.render({
+				elem: '#datetime1' //指定元素
+				,trigger: 'click'
+			});
+		});
+	</script>
+</head>
+<body>
+<div>
+	<div id="head">新增员工</div>
+	<form class="layui-form "  method="POST" id="addForm"  action="emp/saveEmp">
+		<div class="layui-form-item">
+			<label class="layui-form-label">员工姓名:</label>
+			<div class="layui-input-block">
+				<input type="text" name="name" id="checkTr"
+					   lay-verify="name" placeholder="请输入员工姓名" autocomplete="off"
+					   class="layui-input">
+			</div>
+		</div>
+
+		<div class="layui-form-item">
+			<label class="layui-form-label">员工性别:</label>
+			<div class="layui-input-block">
+				<select name="gender" lay-verify="required">
+					<option value=""></option>
+					<option value="0">男</option>
+					<option value="1">女</option>
+					<option value="2">未知</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="layui-form-item">
+			<label class="layui-form-label">出生日期:</label>
+			<div class="layui-input-block">
+				<input type="datetime" id="datetime" name="birthday" required
+					   lay-verify="required" autocomplete="off" class="layui-input">
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">入职日期:</label>
+			<div class="layui-input-block">
+				<input type="datetime" id="datetime1" name="workTime" required
+					   lay-verify="required" autocomplete="off" class="layui-input">
+			</div>
+		</div>
+
+		<div class="layui-form-item">
+			<label class="layui-form-label">所属部门:</label>
+			<div class="layui-input-block">
+				<select name="deptId" lay-verify="required" id="select2">
+					<option value=""></option>
+				</select>
+			</div>
+		</div>
+
+		<div class="layui-form-item">
+			<label class="layui-form-label">任职职位:</label>
+			<div class="layui-input-block">
+				<input type="text" name="job" required lay-verify="required"
+					   placeholder="请输入所属职位" autocomplete="off" class="layui-input">
+			</div>
+		</div>
+
+		<div class="layui-form-item">
+			<label class="layui-form-label">工资:</label>
+			<div class="layui-input-block">
+				<input type="text" name="sal"
+					   lay-verify="required|num"
+					   placeholder="请输入应得工资"
+					   autocomplete="off" class="layui-input">
+			</div>
+		</div>
+
+		<div class="layui-form-item ">
+			<label class="layui-form-label">奖金:</label>
+			<div class="layui-input-block">
+				<input type="text" name="bonus"  lay-verify="num"
+					   placeholder="请输入应得奖金" autocomplete="off" class="layui-input">
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-input-block">
+					<button class="layui-btn" lay-submit lay-filter="EmpForm" id="submit">立即提交</button>
+					<button type="reset" class="layui-btn layui-btn-primary">重置</button>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+
+</body>
+</html>
+

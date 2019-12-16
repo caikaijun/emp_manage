@@ -1,0 +1,343 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE HTML>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>员工信息管理</title>
+<style type="text/css">
+#head {
+	text-align: center;
+	font-size: 2rem;
+	font-style: oblique;
+}
+
+
+</style>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="/layui/css/layui.css" media="all">
+<script src="/layui/layui.js"></script>
+<script type="text/javascript" src="/layui/jquery-3.2.1.min.js"></script>
+<script>
+	layui.use('table', function() {
+		var table = layui.table;
+
+		//创建表
+		table.render({
+			elem : '#demo',
+			autoSort : true,
+			height : 400,
+			width : 1*table.width,
+			skin : 'nob' //行边框风格
+			,
+			title : '员工管理系统',
+			even : true //开启隔行背景
+			,
+			size : 'lg' //小尺寸的表格
+			,
+			url : 'emp/findAll' //数据接口
+			,
+			page : true //开启分页
+			,
+			limits : [ 5, 10, 20, 30, 40, 50 ],
+			limit : 5,
+			parseData : function(res) { //res 即为原始返回的数据
+				return {
+					"code" : res.code, //解析接口状态
+					"msg" : res.msg, //解析提示文本
+					"count" : res.count, //解析数据长度
+					"data" : res.data
+				//解析数据列表
+				};
+			},
+			cols : [ [ //表头
+			{
+				type : 'checkbox'
+			}, {
+				field : 'id',
+				title : '员工ID',
+				align : 'center'
+
+			}, {
+				field : 'name',
+				title : '员工姓名',
+				align : 'center'
+			}, {
+				field : 'gender',
+				title : '性别',
+				align : 'center',
+				templet : function(d) {
+					var gender = d.gender;
+					if (gender == 0) {
+						return '男'
+					} else if (gender == 1) {
+						return '女'
+					} else {
+						return '未知'
+					}
+				}
+			}, {
+				field : 'birthday',
+				title : '出生日期',
+				align : 'center',
+				minWidth : 110,
+				templet : function(d) {
+					return formatDate(d.birthday);
+				}
+			}, {
+				field : 'dept',
+				title : '所属部门',
+				align : 'center',
+				minWidth : 150,
+					templet : function(d) {
+						var deptName = d.dept.deptName;
+
+						return deptName;
+					}
+
+				
+			}, {
+				field : 'job',
+				title : '任职职位',
+				align : 'center',
+				minWidth : 180
+			}, {
+				field : 'sal',
+				title : '工资',
+				align : 'center'
+			}, {
+				field : 'bonus',
+				title : '奖金',
+				align : 'center'
+			}, {
+				field : 'workTime',
+				title : '入职日期',
+				align : 'center',
+				minWidth : 150,
+				templet : function(d) {
+					return formatDate(d.workTime);
+				}
+			}, {
+				fixed : 'right',
+				width : 80,
+				align : 'center',
+				toolbar : '#barDemo'
+			} ] ]
+		});
+
+		//监听工具条 
+		table.on('tool(empTable)', function(obj) { //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
+			var data = obj.data
+			var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+			var tr = obj.tr; //获得当前行 tr 的 DOM 对象（如果有的话）
+			var params = {
+				"id" : data.id,
+			}
+
+			if (layEvent === 'edit') { //修改
+				open(tr,data.id);
+			}
+		});
+
+		//监听排序事件 
+		table.on('sort(empTable)', function(obj) { //注：sort 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
+			console.log(obj.field); //当前排序的字段名
+			console.log(obj.type); //当前排序类型：desc（降序）、asc（升序）、null（空对象，默认排序）
+			console.log(this); //当前排序的 th 对象
+
+		});
+		table.on('checkbox()', function(obj) {
+			var checkStatus = table.checkStatus("demo"); //idTest 即为基础参数 id 对应的值
+			var data = checkStatus.data
+			var array = []
+			for (var i = 0; i < data.length; i++) {
+				array.push(data[i].id)
+			}
+			$("#del").click(function() {
+				layer.confirm('确定删除?', {
+					btn : [ '确定', '取消' ],
+					title : "提示"
+				}, function() {
+					var params = {
+						"ids" : array.toString()
+					}
+					$.post("emp/delEmps", params, function(result) {
+						if (result.code == 0) {
+							layer.closeAll('dialog');
+							layui.table.reload("demo",{page:{curr:$(".layui-laypage-em").next().html()}})
+						}
+					});
+				})
+			})
+		});
+		// 点击获取数据
+		var $ = layui.jquery, active = {
+			reload : function() {
+				var param = $("#search_name").val();
+				var beginTime=$("#search_time1").val();
+				var endTime=$("#search_time2").val();
+				var searchParam={"param":param,"beginTime":beginTime,"endTime":endTime}
+				if (param!=''|beginTime!=''|endTime!='') {
+					var index = layer.msg('查询中，请稍候...', {
+						icon : 16,
+						time : false,
+						shade : 0
+					});
+					setTimeout(function() {
+						table.reload('demo', { //表格的id
+							page: {
+								curr: 1 //主要代码行
+							},
+							url : 'emp/findAll',
+							where : {
+								'param':param,
+								'beginTime':beginTime,
+								'endTime':endTime
+							}
+						});
+						layer.close(index);
+					}, 800);
+				} else {
+					layer.msg("请输入查询信息");
+				}
+			},
+		};
+		$("#searchLike").click(function() {
+			var type = $(this).data('type');
+			active[type] ? active[type].call(this) : '';
+		})
+		$("#searchByTime").click(function() {
+			var type = $(this).data('type');
+			active[type] ? active[type].call(this) : '';
+		})
+		$("#search_name").bind("keyup", function(e) {
+			if (e.keyCode == 13) {
+				var type = "reload";
+				active[type] ? active[type].call(this) : '';
+			}
+		})
+		$("#return").click(function () {
+			window.location.href = "Emplist"
+		})
+		
+		function formatDate(shijianchuo) {
+
+			//时间戳是整数，否则要parseInt转换  
+			var time = new Date(shijianchuo); // 需要使用Date格式进行日期转化，若是时间戳、字符串时间，需要通过new Date(..)转化
+
+			var y = time.getFullYear();
+
+			var m = time.getMonth() + 1;
+
+			var d = time.getDate();
+
+			var h = time.getHours();
+
+			var mm = time.getMinutes();
+
+			var s = time.getSeconds();
+
+			return y + '/' + m + '/' + d;
+
+		}
+
+
+	});
+
+	//时间控件
+	layui.use('laydate', function(){
+		  var laydate = layui.laydate;
+		  //执行一个laydate实例
+		  laydate.render({
+		    elem: '#search_time1' //指定元素
+		  });
+		});
+	//时间控件
+	layui.use('laydate', function(){
+		  var laydate = layui.laydate;
+		  
+		  //执行一个laydate实例
+		  laydate.render({
+		    elem: '#search_time2' //指定元素
+		  });
+		});
+	function useradd() {
+		layui.use('layer', function () {
+			layer.open({
+				type: 2,
+				content: ["/addEmp"],   //添加页，后台controller转发到指定页
+				area: ["800px", "600px"],
+				title: ['用户添加'],
+				fixed: false,
+				//maxmin: true,
+				shadeClose: true,
+				end: function () {  //刷新页面
+					//location.reload();//弹出层结束后，刷新主页面
+					layui.table.reload('demo',{page:{curr:$(".layui-laypage-em").next().html()}});
+				}
+			})
+		})
+	}
+	function open(tr,id){
+		$.post("emp/findEmpById", {"id":id}, function(data) {
+			//弹出层
+			layer.open({
+				type: 2,
+				content: ["/editEmp"], //弹窗打开的url
+				area: ["800px", "600px"],
+				title: ['用户添加'],
+				fixed: false,
+				//maxmin: true,
+				shadeClose: true,
+				end:function(){
+					layui.table.reload('demo',{page:{curr:$(".layui-laypage-em").next().html()}});
+				}
+
+			});
+		})
+	}
+
+
+
+
+</script>
+<script type="text/html" id="barDemo">
+  <a class="layui-btn layui-btn-xs" lay-event="edit" id="aupdata">修改</a>
+</script>
+</head>
+<body>
+	<!-- body-start  -->
+	<div id="head">员工信息一览表</div><br/><br/>
+	<div class="demoTable" id="div">
+		搜索：
+		<div class="layui-inline">
+			<input class="layui-input" name="id" id="search_name"
+				autocomplete="off" placeholder="请输入员工姓名">
+		</div>
+		<button id="add" onclick="useradd()" class="layui-btn layui-btn-normal">增加
+		</button>
+		<button id="del" data-method="offset" data-type="auto"
+			class="layui-btn layui-btn-normal">删除</button>
+		开始时间：
+		<div class="layui-inline">
+			<input class="layui-input"  id="search_time1"
+				autocomplete="off" placeholder="请输入起始时间">
+		</div>
+		结束时间：
+		<div class="layui-inline">
+			<input class="layui-input"  id="search_time2"
+				autocomplete="off" placeholder="请输入结束时间">
+		</div>
+		<button class="layui-btn" data-type="reload" id="searchByTime">搜索</button>
+		<button class="layui-btn" data-type="reload" id="return">返回首页</button>
+
+	</div><br/>
+	<div>
+		<table id="demo" lay-filter="empTable"></table>
+	</div>
+
+
+</body>
+<!-- body-end  -->
+</html>
+
+
+

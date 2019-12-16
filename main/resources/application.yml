@@ -1,0 +1,49 @@
+#server
+server:
+  port: 8080
+  tomcat:
+    max-threads: 1000
+  servlet:
+    context-path: /
+    
+#spring datasource
+spring:
+  mvc:
+    favicon:
+      enabled: false
+  datasource:
+    url: jdbc:mysql:///jysoft?serverTimezone=GMT%2B8&characterEncoding=UTF8
+    username: root
+    password: root
+  aop:
+    proxy-target-class: false
+#Spring data Jpa
+  jpa:
+    show-sql: true
+    database: mysql
+    hibernate:
+      #配置级联等级
+      ddl-auto: update
+      naming:
+        physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
+  thymeleaf:
+    cache: false
+##Spring mybatis
+#mybatis:
+#  configuration:
+#    default-statement-timeout: 30
+#    map-underscore-to-camel-case: true
+#  mapper-locations:
+#  - classpath:/mapper/*.xml
+##thymeleaf
+
+logging:
+  level:
+    com.cy: DEBUG
+    
+#spring async pool
+async-thread-pool:
+  corePoolSize: 5
+  maxPoolSize: 10
+  keepAliveSeconds: 30
+  queueCapacity: 30
